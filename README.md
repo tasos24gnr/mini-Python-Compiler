@@ -1,0 +1,2 @@
+# mini-Python-Compiler
+Implementation of a mini-python compiler. Using sablecc.jar and our own grammar (tony.grammar), we're creating our own rules for helpers, tokens, productions and abstract syntax tree. We achieved Lexical, Syntax analysis and AST-tree creation of a portion of Python's grammar. With the help of the java files, we're able to parse a .py file and do our analysis based on our rules.
