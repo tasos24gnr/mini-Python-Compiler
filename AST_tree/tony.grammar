@@ -1,0 +1,217 @@
+/*
+* Compilers 2nd Assigment 
+* Anastasios Benos 3130141
+* Efthimios Tsopelas 3130210
+*/
+
+Package tony;
+
+Helpers
+	digit = ['0' .. '9'];
+	letter = ['a' .. 'z']|['A' .. 'Z']; 
+	cr = 13; 
+	lf = 10;
+	all = [0..127]; 
+	eol = lf | cr | cr lf ;
+	not_eol = [all - [cr + lf]]; 	
+
+Tokens
+	tab = 9;
+	less = '<';
+	great = '>';
+	minus_eq = '-=';
+    slash_eq = '/=' ;
+	plus = '+';
+	minus = '-';
+	dmult = '**';
+	mult = '*';
+	div = '/';
+	dot = '.';
+	l_par = '(';
+	r_par = ')';
+	l_br = '[';
+	r_br = ']';
+	double_eq = '==';
+	eq = '=';
+	not_eq = '!=';
+	exclam = '!';
+	semi = ':';
+	quote = '"';
+	logic_plus = '&&';
+	comma=',';
+	qmark = '?';
+	gqmark = ';';
+	
+	def = 'def';
+	if = 'if';
+	elif = 'elif';
+	else = 'else';
+	while = 'while';
+	for = 'for';
+	from = 'from';
+	in = 'in';
+	print = 'print';
+	return = 'return';
+    assert = 'assert';
+    importok = 'import';
+    as = 'as';
+	true = 'true';
+	false = 'false';
+	
+	blank = (' ' | lf | cr);
+	line_comment = '#' not_eol* eol; 
+	number = '-'? ' '*( digit+ | (digit+ '.' digit+));  
+	id = letter (letter | digit)*;
+	  
+	string1 = '"'not_eol* '"';
+	string2 = '''not_eol* ''';
+
+Ignored Tokens
+	blank, line_comment;
+	
+
+Productions
+	goal = program* {-> New goal([program])} ;
+	
+	program = {function}function {-> New program.function(function)}
+			 |{stat}statement {-> New program.stat(statement)};
+	
+	function = def id l_par argument? r_par semi statement {-> New function(id,[argument],statement)} ; 
+	
+	argument = id equal_val? comma_id_value* {-> New argument(id,[equal_val],[comma_id_value])};
+
+	equal_val = eq value{-> New equal_val(value)};
+
+	comma_id_value = comma id equal_val?{-> New comma_id_value(id,[equal_val])};
+	
+	statement =   {if} tab* if comparison semi statement {-> New statement.if_while(comparison,statement)}
+					| {while} tab* while comparison semi statement {-> New statement.if_while(comparison,statement)}
+					| {for} tab* for [id1]:id in [id2]:id semi statement {-> New statement.for(id1,id2,statement)}
+					| {return} tab* return expression {-> New statement.return(expression)}
+					| {print} tab* print expression arglist_helper* {-> New statement.print(expression,[arglist_helper])}
+					| {anathesi} tab* id eq expression {-> New statement.anathesi_minus_eq_slash_eq(id,expression)}
+					| {minus_eq} tab* id minus_eq expression {-> New statement.anathesi_minus_eq_slash_eq(id,expression)}
+					| {slash_eq} tab* id slash_eq expression {-> New statement.anathesi_minus_eq_slash_eq(id,expression)}
+					| {anathesi_pinaka} tab* id l_br [ex1]:expression r_br eq [ex2]:expression {-> New statement.anathesi_pinaka(id,ex1,ex2)}
+					| {assert} assert expression assert_helper? {-> New statement.assert(expression,[assert_helper])}
+					| {function_call} tab* function_call {-> New statement.function_call(function_call)}
+					| {import} import {-> New statement.import(import)};
+				
+	expression =   {multiplication} multiplication {-> multiplication.expression}
+						| {addition} expression plus multiplication {-> New expression.addition(expression, multiplication.expression)}
+						| {subtraction} expression minus multiplication {-> New expression.minus(expression, multiplication.expression)} ;
+	
+	multiplication{-> expression} =  {power} power {-> power.expression}
+									| {multiplication} multiplication mult power {-> New expression.multiplication(multiplication.expression,power.expression)}
+									| {div}multiplication div power {-> New expression.div(multiplication.expression,power.expression)};
+	
+	power{-> expression} =  {something}something {-> something.expression}
+							| {dunami}power dmult something{-> New expression.dunami(power.expression,something.expression)} ; 
+
+	something{-> expression} =  {identifier}id {-> New expression.idd(id)}
+						| {parenthesis}l_par expression r_par {-> New expression.exp1(expression)}
+						| {id_aggiles} id l_br expression r_br {-> New expression.exp2(id,expression)}
+						| {function_call} function_call {-> New expression.function_call(function_call)}
+						| {value} value {-> New expression.value(value)} ;
+	
+	value =  {function_call} id dot function_call{-> New value.idf(id , function_call)}
+				| {numb} number{-> New value.number(number)}
+				| {str1} string1{-> New value.string1(string1)}
+				| {str2} string2{-> New value.string2(string2)};
+		
+	comparison = {true}true {-> New comparison.true(true)}
+						| {false}false {-> New comparison.false(false)}
+						| {megalitero}[ex1]:expression great [ex2]:expression {-> New comparison.allo(ex1, ex2)} 
+						| {mikrotero} [ex1]:expression less [ex2]:expression {-> New comparison.allo(ex1, ex2)}
+						| {diaforo}[ex1]:expression not_eq [ex2]:expression {-> New comparison.allo(ex1, ex2)}
+						| {iso}[ex1]:expression double_eq [ex2]:expression {-> New comparison.allo(ex1, ex2)} ;
+
+	import = {importorigin} importok module as_id? comma_mod_as_id* {-> New import.importorigin(module, [as_id],[comma_mod_as_id])}
+				| {importfrom} from module importok id as_id? comma_id_as_id* {-> New import.importfrom(module, id, [as_id],[comma_id_as_id])} ;				
+	
+	assert_helper= comma expression {-> New assert_helper(expression)} ;
+	arglist_helper = comma expression {-> New arglist_helper(expression)} ; 
+	function_call = id l_par arglist? r_par {-> New function_call(id, [arglist])}; 		
+	arglist = expression arglist_helper* {-> New arglist(expression, [arglist_helper])};
+	as_id = as id {-> New as_id(id)};
+	comma_mod_as_id = comma module as_id?  {-> New comma_mod_as_id(module,[as_id])};
+	comma_id_as_id = comma id as_id? {-> New comma_id_as_id(id,[as_id])} ;
+	
+	module = id_dot* id {-> New module([id_dot],id)};
+	id_dot = id dot {-> New id_dot(id)};
+	
+
+	
+Abstract Syntax Tree
+
+goal = program*;
+
+program = {function}function|{stat}statement;
+
+function = id argument* statement;
+
+argument = id  equal_val* comma_id_value* ;
+
+equal_val= value ;
+
+comma_id_value=  id equal_val* ; 
+
+statement = {if_while} comparison statement
+		  | {for} [id1]:id [id2]:id statement 
+		  | {anathesi_minus_eq_slash_eq} id expression
+   		  | {anathesi_pinaka} id [exp1]:expression [exp2]:expression
+		  | {function_call} function_call
+   		  | {return} expression   							
+		  | {print} expression arglist_helper* 
+		  | {assert} expression assert_helper* 
+		  | {import} import ;
+		  
+arglist_helper = expression;
+
+assert_helper= expression;
+
+function_call= id arglist*;
+
+arglist = expression arglist_helper*;
+
+import= {importorigin}  module as_id* comma_mod_as_id*
+		| {importfrom}  module  id as_id* comma_id_as_id* ;		
+
+module=	id_dot* id;
+
+id_dot= id;
+
+as_id= id;	
+
+comma_mod_as_id= module as_id*;
+
+comma_id_as_id= id as_id*;
+
+comparison = {allo} [exp1]:expression  [exp2]:expression 
+	         |{true} true
+	         |{false} false;
+	
+expression = {addition} [lex]:expression [rex]:expression |
+			{minus} [lex]:expression [rex]:expression |
+			{multiplication} [lex]:expression [rex]:expression |
+			{div} [lex]:expression [rex]:expression |
+			{dunami} [lex]:expression [rex]:expression |
+			{function_call} function_call |
+			{exp1} expression  |
+			{exp2} id expression |
+			{idd} id |
+			{value} value;
+			
+value = {number} number |
+		{string1} string1 |
+		{string2} string2 |
+		{idf} id function_call;
+
+
+ 
+
+
+
+	
+	
+	
